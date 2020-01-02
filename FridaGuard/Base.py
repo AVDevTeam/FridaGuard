@@ -1,6 +1,7 @@
 import frida, inspect, os, sys
 from psutil import Process
 from abc import ABC, abstractmethod
+from ArgReader import ArgReader
 
 # another wrapper that is not used.
 # initializes Frida session with the script that is named as the module where the child of this class
@@ -20,13 +21,6 @@ class SessionFile(ABC):
         self.script.load()
         
 class InterceptMap(object):
-    # supported argument types: strings (ascii, utf-8 (aka encoding used in windows))
-    types = [
-        'ASCIstr',
-        'UTF16str',
-        'int'
-    ]
-
     def __init__(self):
         self.fmap = {}
     
@@ -41,7 +35,7 @@ class InterceptMap(object):
     # parameter onLeave defines whether the arguments will be processed before or after the call.
     def add(self, module, func, args, callback, onLeave=False):
         for a in args:
-            if a not in self.types:
+            if not issubclass(type(a), ArgReader):
                 raise ValueError('Invalid arg type')
         if module not in self.fmap:
             self[module] = {}
@@ -76,27 +70,11 @@ class SessionInterceptor(ABC):
                 script += """Interceptor.attach({varName}, {{
     onEnter: function(args) {{
         this.preArgs = [];
-        var argsBag = [];""".format(varName=varName, func=func)
-                argCnt = -1
+        for (var i = 0; i < 10; i++)
+            this.preArgs.push(args[i]);
+        var argsBag = {{}};""".format(varName=varName, func=func)
                 for arg in funcMap[module][func][0]: # iterates over arguments
-                    argCnt += 1
-                    if arg == 'UTF16str':
-                        script += """
-        var temp = new NativePointer(args[{argCnt}]);
-        argsBag.push(temp.readUtf16String());
-        this.preArgs.push(args[{argCnt}]);
-""".format(argCnt=argCnt)
-                    if arg == 'ASCIstr':
-                        script += """
-        var temp = new NativePointer(args[{argCnt}]);
-        argsBag.push(temp.readCString());
-        this.preArgs.push(args[{argCnt}]);
-""".format(argCnt=argCnt)
-                    if arg == 'int':
-                        script += """
-        argsBag.push(args[{argCnt}]);
-        this.preArgs.push(args[{argCnt}]);
-""".format(argCnt=argCnt)
+                    script += arg.genStab()
                 if not funcMap[module][func][2]: # check onLeave flag
                     script += """
         var toSend = {{}};
@@ -114,25 +92,11 @@ class SessionInterceptor(ABC):
                     script += """
     }},
     onLeave: function(result) {{
-        var argsBag = [];
+        var args = this.preArgs;
+        var argsBag = {{}};
 """.format(varName=varName, func=func)
-                    argCnt = -1
                     for arg in funcMap[module][func][0]:
-                        argCnt += 1
-                        if arg == 'UTF16str':
-                            script += """       
-        var temp = new NativePointer(this.preArgs[{argCnt}]);
-        argsBag.push(temp.readUtf16String());
-""".format(argCnt=argCnt)
-                        if arg == 'ASCIstr':
-                            script += """
-        var temp = new NativePointer(this.preArgs[{argCnt}]);
-        argsBag.push(temp.readCString());
-""".format(argCnt=argCnt)
-                        if arg == 'int':
-                            script += """
-        argsBag.push(this.preArgs[{argCnt}]);
-""".format(argCnt=argCnt)
+                        script += arg.genStab()
                     script += """
         var toSend = {{}};
         toSend.type = "onLeave";

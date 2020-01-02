@@ -1,4 +1,4 @@
-from FridaGuard import Connector, SessionInterceptor, InterceptMap
+from FridaGuard import *
 import json, re, sys
 
 debug_print = True # defines whether to kill violating process or not
@@ -7,7 +7,7 @@ class ConsoleDefSession(SessionInterceptor):
     # implements attack detection logic
     def ReadConsoleCallback(self, args):
         for s in self.signatures:
-            if s.match(args[1]):
+            if s.match(args['arg1']):
                 if debug_print:
                     print(self.signatures[s])
                 return (True & (not debug_print))
@@ -25,8 +25,8 @@ class ConsoleDefSession(SessionInterceptor):
                 
         # defines target functions
         funcMap = InterceptMap()
-        funcMap.add('kernel32.dll', 'ReadConsoleA', ['int', 'ASCIstr'], self.ReadConsoleCallback, onLeave=True)
-        funcMap.add('kernel32.dll', 'ReadConsoleW', ['int', 'UTF16str'], self.ReadConsoleCallback, onLeave=True)
+        funcMap.add('kernel32.dll', 'ReadConsoleA', [IntReader(0), ASCIstrReader(1)], self.ReadConsoleCallback, onLeave=True)
+        funcMap.add('kernel32.dll', 'ReadConsoleW', [IntReader(0), UTF16strReader(1)], self.ReadConsoleCallback, onLeave=True)
         super().__init__(session, funcMap)
         self.start()
         print("started...")
