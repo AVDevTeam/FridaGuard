@@ -1,0 +1,7 @@
+{
+	"Account Discovery" : ["net\\s+user", "net\\s+group", "net\\s+localgroup"],
+	"Domain Trust Discovery" : ["Nltest"],
+	"Network Share Discovery" : ["net\\s+view\\s+\\\\remotesystem", "net\\s+share"],
+	"Password Policy Discovery" : ["net\\s+accounts", "net\\s+accounts\\s+\\/domain"],
+	"System Network Connections Discovery" : ["netstat", "net\\s+use", "net\\s+session"]
+}
