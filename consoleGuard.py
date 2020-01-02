@@ -1,4 +1,4 @@
-from FridaDef import Connector, SessionInterceptor, InterceptMap
+from FridaGuard import Connector, SessionInterceptor, InterceptMap
 import json, re, sys
 
 debug_print = True # defines whether to kill violating process or not

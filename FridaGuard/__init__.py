@@ -1,5 +1,5 @@
 import sys
 
-sys.path.append('FridaDef')
+sys.path.append('FridaGuard')
 
 from Base import Connector, SessionFile, SessionInterceptor, InterceptMap
