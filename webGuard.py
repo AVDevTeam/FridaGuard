@@ -52,6 +52,14 @@ class WinInetRequest(object):
 class WebDefSession(SessionInterceptor):
     kill_on_violation = False # defines whether to kill violating process or not
     signatures_path = 'xss_signatures.json'
+    hosts_black_list_path = 'hosts_black_list.json'
+    
+    # implements malicious connections monitoring
+    def CheckHost(self, host):
+        if host in self.hosts_black_list:
+            print("[!] Connection to malicious host ({host}).".format(host=host))
+            return True & self.kill_on_violation
+        return False
 
     # implements attack detection logic
     def CheckResponse(self, requestData):
@@ -88,7 +96,9 @@ class WebDefSession(SessionInterceptor):
     # Most hooks are used to trace HTTP-requests made via wininet.dll (by handle).
     def InternetConnectCallback(self, args, data):
         handle = args['ret']
-        self.requests[handle] = WinInetRequest(handle).withHost(args['arg1'])
+        host = args['arg1']
+        self.requests[handle] = WinInetRequest(handle).withHost(host)
+        return self.CheckHost(host)
         
     def HttpOpenRequestCallback(self, args, data):
         handle = args['arg0']
@@ -130,7 +140,7 @@ class WebDefSession(SessionInterceptor):
         try:
             signatures_raw = json.load(open(self.signatures_path, 'r'))
         except:
-            print("[!] Invalid signatures file format, expecting JSON.")
+            print("[!] Invalid signatures file format, expecting JSON dictionary.")
             sys.exit(1)
         signatures = {}
         for stype in signatures_raw:
@@ -138,6 +148,16 @@ class WebDefSession(SessionInterceptor):
                 signatures[re.compile(s, re.IGNORECASE)] = stype
         self.xss_signatures = signatures
         print("[+] Loaded signatures from {sign_file}.".format(sign_file=self.signatures_path))
+        print("[*] Loading hosts black list...")
+        if not os.path.isfile(self.hosts_black_list_path):
+            print("[!] Hosts black list file not found {file}.".format(file=self.hosts_black_list_path))
+            sys.exit(1)
+        try:
+            self.hosts_black_list = json.load(open(self.hosts_black_list_path, 'r'))
+        except:
+            print("[!] Invalid hosts black list file format, expecting JSON dictionary.")
+            sys.exit(1)
+        print("[+] Loaded hosts black list from {file}.".format(file=self.hosts_black_list_path))
         print("[*] Setting up API-hooks...") 
         # defines target functions
         funcMap = InterceptMap()
