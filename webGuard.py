@@ -193,8 +193,7 @@ class WebDefSession(SessionInterceptor):
                                                         ], self.HttpSendRequestCallback)
         funcMap.add('wininet.dll', 'InternetReadFile', [
                                                         IntReader(0),         # handle
-                                                        UTF16strReader(1),    # headers
-                                                        BinBufferReaderPtr(1, 3) # body
+                                                        BinBufferReaderPtr(1, 3) # response
                                                         ], self.InternetReadFileCallback, onLeave=True)                                                
         super().__init__(session, funcMap)
         print("[+] API-hooks were initialized.")
