@@ -1,0 +1,5 @@
+{
+	"script" : ["<script>.*"],
+	"src" : ["src\\s*=\\s*javascript\\s*:\\s*.*>", "src\\s*=\\s*\\\"\\s*javascript\\s*:\\s*.*\\\""],
+	"onerror" : ["onerror\\s*=.*>"]
+}

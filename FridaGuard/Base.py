@@ -50,11 +50,12 @@ class SessionInterceptor(ABC):
     # and calls corresponding callback function (from the InterceptMap).
     # based on the result from the callback the target process will be terminated or not.
     def on_message(self, message, data):
+        #print(message)
         module = message['payload']['module']
         func = message['payload']['func']
         PID = message['payload']['PID']
         callback = self.funcMap[module][func][1]
-        if callback(message['payload']['args']):
+        if callback(message['payload']['args'], data):
             p = Process(PID)
             p.kill()
         self.script.post({'type': 'wake', 'payload': None})
@@ -72,7 +73,8 @@ class SessionInterceptor(ABC):
         this.preArgs = [];
         for (var i = 0; i < 10; i++)
             this.preArgs.push(args[i]);
-        var argsBag = {{}};""".format(varName=varName, func=func)
+        var argsBag = {{}};
+        argsBag.data = null;""".format(varName=varName, func=func)
                 for arg in funcMap[module][func][0]: # iterates over arguments
                     script += arg.genStab()
                 if not funcMap[module][func][2]: # check onLeave flag
@@ -83,7 +85,7 @@ class SessionInterceptor(ABC):
         toSend.module = "{module}";
         toSend.func = "{func}";
         toSend.args = argsBag;
-        send(toSend);
+        send(toSend, argsBag.data);
         var op = recv('wake', function(value) {{}});
         op.wait();
     }},""".format(module=module, func=func)
@@ -94,17 +96,19 @@ class SessionInterceptor(ABC):
     onLeave: function(result) {{
         var args = this.preArgs;
         var argsBag = {{}};
+        argsBag.data = null;
 """.format(varName=varName, func=func)
                     for arg in funcMap[module][func][0]:
                         script += arg.genStab()
                     script += """
         var toSend = {{}};
+        argsBag.ret = result;
         toSend.type = "onLeave";
         toSend.PID = Process.id;
         toSend.module = "{module}";
         toSend.func = "{func}";
         toSend.args = argsBag;
-        send(toSend);
+        send(toSend, argsBag.data);
         var op = recv('wake', function(value) {{}});
         op.wait();
     }},""".format(module=module, func=func)

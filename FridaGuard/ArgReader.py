@@ -27,4 +27,29 @@ class UTF16strReader(ArgReader):
         var temp = new NativePointer(args[{position}]);
         argsBag.arg{position} = temp.readUtf16String();
 """.format(position=self.position)
+
+class BinBufferReader(ArgReader):
+    def __init__(self, position, lenPosition):
+        super().__init__(position)
+        self.lenPosition = lenPosition
+        
+    def genStab(self):
+        return """
+        var temp = new NativePointer(args[{position}]);
+        argsBag.arg{position} = "data";
+        argsBag.data = temp.readByteArray(args[{lenPosition}].toInt32());
+""".format(position=self.position, lenPosition=self.lenPosition)
+
+class BinBufferReaderPtr(ArgReader):
+    def __init__(self, position, lenPosition):
+        super().__init__(position)
+        self.lenPosition = lenPosition
+        
+    def genStab(self):
+        return """
+        var temp = new NativePointer(args[{position}]);
+        var temp2 = new NativePointer(args[{lenPosition}]);
+        argsBag.arg{position} = "data";
+        argsBag.data = temp.readByteArray(temp2.readS32());
+""".format(position=self.position, lenPosition=self.lenPosition)
     
